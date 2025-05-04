@@ -3,6 +3,7 @@ from statsmodels.tsa.arima.model import ARIMAResults, ARIMA
 from utils import adf_test, get_metrics
 from typing import List, Tuple, Literal
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from sklearn.metrics import mean_absolute_error as MAE, mean_absolute_percentage_error as MAPE, mean_squared_error as MSE
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -191,14 +192,30 @@ def holt_winters_forecast(
 def ARIMA_forecast(df : DataFrame, length = 12, order=tuple[int,int,int]) -> None:
     model = ARIMA(df, order=order).fit()
     f = model.get_forecast(length)
-    f.predicted_mean.plot(legend=True, label=f"ARIMA{order} Forecast")
+
+    fig, ax = plt.subplots(figsize=(12, 4))
+
+    ax.xaxis.set_major_locator(mdates.YearLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    ax.xaxis.set_minor_locator(mdates.MonthLocator())
+    # Optional: format ticks
+    ax.tick_params(axis='x', which='major', length=5)  # major ticks
+    ax.tick_params(axis='x', which='minor', length=2)  # minor ticks, no labels
+    ax.grid(axis="x", linestyle='--', linewidth=0.5)
+    ax.set_xlim(df.index.min(), f.predicted_mean.index.max())
+    ax.plot(f.predicted_mean, label=f"ARIMA{order} Forecast")
+    ax.set_title("ARIMA Forecast")
+    ax.set_ylabel("Inflation Rate (%)")
+    ax.set_xlabel("Date")
+
+
     conf_int = f.conf_int()
-    plt.fill_between(f.predicted_mean.index,
+    ax.fill_between(f.predicted_mean.index,
                     conf_int.iloc[:, 0],
                     conf_int.iloc[:, 1],
                     color='skyblue', alpha=0.3, label='95% C.I.',
                     )
-    df.plot(legend=True, label=df.name, figsize=(16, 6))
+    ax.plot(df, label=df.name, color='black', alpha=0.5)
     plt.legend()
     plt.show()
 
